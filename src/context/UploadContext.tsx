@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 type UploadStatus = "waiting" | "uploading" | "completed";
@@ -58,14 +58,28 @@ export const UploadProvider = ({ children }: { children: ReactNode }) => {
     }));
 
     setFiles((prev) => [...prev, ...newFiles]);
-    setIsOpen(true); // 🔥 auto open panel
+    setIsOpen(true);
   };
 
   const closePanel = () => setIsOpen(false);
 
-  if (!files.some((f) => f.status === "uploading")) {
-    uploadNext();
-  }
+  // ▶ Auto start next upload
+  useEffect(() => {
+    if (!files.some((f) => f.status === "uploading")) {
+      uploadNext();
+    }
+  }, [files]);
+
+  // ❌ Auto close panel when all uploads complete
+  useEffect(() => {
+    if (files.length > 0 && files.every((f) => f.status === "completed")) {
+      const timer = setTimeout(() => {
+        setIsOpen(false);
+      }, 1000); // small delay like Google Drive
+
+      return () => clearTimeout(timer);
+    }
+  }, [files]);
 
   return (
     <UploadContext.Provider
